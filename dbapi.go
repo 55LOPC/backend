@@ -3,8 +3,8 @@ package main
 // проверяем vin номер
 func (handler *IngosHandler) checkVin(vin string) (bool, error) {
 
-	rows, err := handler.DB.Query("SELECT id FROM cars WHERE vin = ? LIMIT 1", vin)
-
+	rows, err := handler.DB.Query("SELECT id FROM cars WHERE vin=? LIMIT 1", vin)
+	defer rows.Close()
 	return rows.Next(), err
 
 }
@@ -13,7 +13,6 @@ func (handler *IngosHandler) checkVin(vin string) (bool, error) {
 func (handler *IngosHandler) getAddressByVin(vin string) (string, error) {
 
 	row := handler.DB.QueryRow("SELECT id, address FROM cars WHERE vin = ?", vin)
-
 	var id int
 	var address string
 
@@ -26,13 +25,12 @@ func (handler *IngosHandler) getAddressByVin(vin string) (string, error) {
 // добавляем новый vin номер в базу данных
 func (handler *IngosHandler) registrationVin(vin string, address string) error {
 
-	result, err := handler.DB.Exec(
-		"INSERT INTO cars (`vin`, `address`) VALUES (?, ?)",
+	_, err := handler.DB.Exec(
+		"INSERT INTO cars (vin, address) VALUES (?, ?)",
 		vin,
-		address,
-	)
+		address)
 
-	_, err = result.RowsAffected()
+	//_, err = result.RowsAffected()
 
 	return err
 }

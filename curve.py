@@ -23,7 +23,7 @@ base58.b58decode(pubKey) + \
 '\0\0' + \
 struct.pack(">Q", timestamp) + \
 struct.pack(">Q", amount) + \
-struct.pack(">Q", txfee) + base58.b58decode(recipient) + struct.pack(">H", 4) + attachment
+struct.pack(">Q", txfee) + base58.b58decode(recipient) + struct.pack(">H", lenAtt) + attachment
 
 random64 = os.urandom(64)
 signature = base58.b58encode(curve.calculateSignature(random64, base58.b58decode(privKey), sData))

@@ -18,7 +18,7 @@ type IngosHandler struct {
 }
 
 type RegistrationRequest struct {
-	Vin string `json:"vin"`
+	Vin string `json:"vinCode"`
 }
 
 type RegistrationResponse struct {
@@ -75,6 +75,7 @@ func (handler *IngosHandler) Registration(w http.ResponseWriter, r *http.Request
 		__err_panic(err)
 
 		w.WriteHeader(http.StatusCreated)
+
 	} else {
 		address, _ := handler.getAddressByVin(params.Vin)
 		wallet = *NewWallet(address)
@@ -82,13 +83,21 @@ func (handler *IngosHandler) Registration(w http.ResponseWriter, r *http.Request
 
 	}
 
+	resultReg, err := wallet.transaction("CREATED")
+
+	__err_panic(err)
+
+	txParam := resultReg.(map[string]interface{})
+	//txParam := resultParam["tx"].(map[string]interface{})
+
+	log.Println(txParam)
+
 	respParam := RegistrationResponse{
 		Address: wallet.address,
+		Tx:      txParam["id"].(string),
 	}
 
 	result, _ := json.Marshal(respParam)
-
-	//w.Header().Add("Content-Length", strconv.Itoa(len(result)))
 
 	w.Write(result)
 
@@ -96,8 +105,11 @@ func (handler *IngosHandler) Registration(w http.ResponseWriter, r *http.Request
 
 func JsonMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
 		w.Header().Add("Access-Control-Allow-Origin", "*")
+		w.Header().Add("Access-Control-Allow-Credentials", "true")
+		w.Header().Add("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")
+		w.Header().Add("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT")
+
 		w.Header().Add("Content-Type", "application/json")
 		//		w.Header().Add("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
 		//		w.Header().Add("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
@@ -130,8 +142,8 @@ func (handler *IngosHandler) Operation(w http.ResponseWriter, r *http.Request, _
 
 	__err_panic(err)
 
-	resultParam := result.(map[string]interface{})
-	txParam := resultParam["tx"].(map[string]interface{})
+	txParam := result.(map[string]interface{})
+	//txParam := resultParam["id"].(map[string]interface{})
 
 	log.Println(txParam)
 
