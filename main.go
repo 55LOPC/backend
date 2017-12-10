@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
@@ -32,8 +33,9 @@ type OperationRequest struct {
 }
 
 type OperationResponse struct {
-	Sender     string `json:"from"`
+	TxID       string `json:"tx"`
 	Recipient  string `json:"to"`
+	Sender     string `json:"from"`
 	Attachment string `json:"attribute"`
 }
 
@@ -45,6 +47,8 @@ type OperationResponse struct {
 // присваиваем кошелек автомобиля для совершения различных операций
 // ?VIN=98789799809809
 // curl -v -X POST -H "Content-Type: application/json" -d '{"vin": "90238049832098409238"}' http://127.0.0.1:8080/api/v1/registration?VIN=09839280492830909
+// curl -v -X POST -H "Content-Type: application/json" -d '{"vin": "90238049832098409238"}' http://77.244.213.45:8080/api/v1/registration
+
 // POST JSON {vin: string}
 // RESP {tx: string, address: string}
 func (handler *IngosHandler) Registration(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
@@ -84,11 +88,22 @@ func (handler *IngosHandler) Registration(w http.ResponseWriter, r *http.Request
 
 	result, _ := json.Marshal(respParam)
 
-	w.Header().Add("Content-Type", "application/json")
 	//w.Header().Add("Content-Length", strconv.Itoa(len(result)))
 
 	w.Write(result)
 
+}
+
+func JsonMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+		w.Header().Add("Access-Control-Allow-Origin", "*")
+		w.Header().Add("Content-Type", "application/json")
+		//		w.Header().Add("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
+		//		w.Header().Add("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
+
+		next.ServeHTTP(w, r)
+	})
 }
 
 // присваиваем кошелек автомобиля для совершения различных операций
@@ -111,19 +126,27 @@ func (handler *IngosHandler) Operation(w http.ResponseWriter, r *http.Request, _
 
 	wallet := NewWallet(params.Recipient)
 
-	wallet.transaction(params.Attachment)
+	result, err := wallet.transaction(params.Attachment)
+
+	__err_panic(err)
+
+	resultParam := result.(map[string]interface{})
+	txParam := resultParam["tx"].(map[string]interface{})
+
+	log.Println(txParam)
 
 	respParam := OperationResponse{
-		Sender: "skjksjk",
-	}
+		TxID:       txParam["id"].(string),
+		Recipient:  txParam["recipient"].(string),
+		Sender:     txParam["sender"].(string),
+		Attachment: params.Attachment}
 	w.WriteHeader(http.StatusOK)
 
-	result, _ := json.Marshal(respParam)
+	resultJson, _ := json.Marshal(respParam)
 
-	w.Header().Add("Content-Type", "application/json")
 	//w.Header().Add("Content-Length", strconv.Itoa(len(result)))
 
-	w.Write(result)
+	w.Write(resultJson)
 
 }
 
@@ -173,8 +196,10 @@ func main() {
 		panic(err)
 	}
 
+	cors := JsonMiddleware(handler)
+
 	fmt.Println("starting server at :8080")
-	http.ListenAndServe(":8080", handler)
+	http.ListenAndServe(":8080", cors)
 
 }
 

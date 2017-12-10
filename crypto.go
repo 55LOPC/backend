@@ -35,22 +35,22 @@ func GenerateNewKeypair() *Keypair {
 }
 
 func (k *Keypair) Sign(hash []byte) ([]byte, error) {
+	/*
+		b58 := NewBitcoinBase58()
+		privDec, _ := b58.DecodeString(k.Private)
 
-	d, err := base58.DecodeToBig(k.Private)
-	if err != nil {
-		return nil, err
-	}
+		dst := [32]byte{}
+		base := [32]byte{}
 
-	b, _ := base58.DecodeToBig(k.Public)
+		for i := 0; i < 32; i++ {
+			base[i] = dst[i]
+		}
+		//	copy(base, privDec)
+		curve25519.ScalarMult(dst, hash, base)
+	*/
 
-	pub := splitBig(b, 2)
-	x, y := pub[0], pub[1]
+	return []byte{}, nil
 
-	key := ecdsa.PrivateKey{ecdsa.PublicKey{elliptic.P224(), x, y}, d}
-
-	r, s, _ := ecdsa.Sign(rand.Reader, &key, hash)
-
-	return base58.EncodeBig([]byte{}, bigJoin(KEY_SIZE, r, s)), nil
 }
 
 func SignatureVerify(publicKey, sig, hash []byte) bool {
